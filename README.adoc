@@ -1,0 +1,386 @@
+= Basic hello world program
+Grzegorz Grzybek <gr.grzybek@gmail.com>
+
+Preamble: Low level details related to compilation & linking of simplest C program.
+
+== Overall options
+(https://gcc.gnu.org/onlinedocs/gcc-5.3.0/gcc/Overall-Options.html#Overall-Options):
+
+* `file.c` - C source code that must be preprocessed.
+* `file.i` - C source code that should not be preprocessed.
+* `file.h` - C, C++, Objective-C or Objective-C++ header file to be turned into a precompiled header (default)
+* `file.s` - Assembler code.
+* other - An object file to be fed straight into linking. Any file name with no recognized suffix is treated this way.
+
+* `-c` - Compile or assemble the source files, but do not link.
+* `-S` - Stop after the stage of compilation proper; do not assemble.
+* `-E` - Stop after the preprocessing stage; do not run the compiler proper.
+* `-o file` - Place output in file file.
+
+* `-\###` - shows commands executed by gcc
+* `-v` - Print (on standard error output) the commands executed to run the stages of compilation
+
+Specifying Subprocesses and the Switches to Pass to Them
+(https://gcc.gnu.org/onlinedocs/gcc-5.3.0/gcc/Spec-Files.html#Spec-Files):
+
+GCC has the following spec strings built into it. Spec files can override these strings or create their own. Note that individual targets can also add their own spec strings to this list.
+
+* `asm`          Options to pass to the assembler
+* `asm_final`    Options to pass to the assembler post-processor
+* `cpp`          Options to pass to the C preprocessor
+* `cc1`          Options to pass to the C compiler
+* `cc1plus`      Options to pass to the C++ compiler
+* `endfile`      Object files to include at the end of the link
+* `link`         Options to pass to the linker
+* `lib`          Libraries to include on the command line to the linker
+* `libgcc`       Decides which GCC support library to pass to the linker
+* `linker`       Sets the name of the linker
+* `predefines`   Defines to be passed to the C preprocessor
+* `signed_char`  Defines to pass to CPP to say whether char is signed by default
+* `startfile`    Object files to include at the start of the link
+
+
+== `gcc -o hello hello.c`:
+
+This is simples invocation of GCC compiler + linker. There's preprocessing, compilation and linkage phases and the result is an
+https://en.wikipedia.org/wiki/Executable_and_Linkable_Format[ELF executable].
+
+....
+$ readelf -h hello
+ELF Header:
+  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           Advanced Micro Devices X86-64
+  Version:                           0x1
+  Entry point address:               0x400440
+  Start of program headers:          64 (bytes into file)
+  Start of section headers:          6592 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               64 (bytes)
+  Size of program headers:           56 (bytes)
+  Number of program headers:         9
+  Size of section headers:           64 (bytes)
+  Number of section headers:         30
+  Section header string table index: 27
+....
+
+There are:
+
+* 9 program headers (segments contain information that is necessary for runtime execution of the file)
+* 30 section headers (sections contain important data for linking and relocation)
+
+*Entry point address*
+....
+$ hexdump -C -s 0x18 -n 0x8 hello
+00000018  40 04 40 00 00 00 00 00                           |@.@.....|
+....
+
+*Start of program headers table, size of single entry and number of program headers*
+....
+$ hexdump -C -s 0x20 -n 0x8 hello
+00000020  40 00 00 00 00 00 00 00                           |@.......|
+$ hexdump -C -s 0x36 -n 0x2 hello
+00000036  38 00                                             |8.|
+$ hexdump -C -s 0x38 -n 0x2 hello
+00000038  09 00                                             |..|
+....
+
+*Start of section headers table, size of single entry and number of section headers*
+....
+$ hexdump -C -s 0x28 -n 0x8 hello
+00000028  c0 19 00 00 00 00 00 00                           |........|
+$ echo $((16#19c0))
+6592
+$ hexdump -C -s 0x3a -n 0x2 hello
+0000003a  40 00                                             |@.|
+$ hexdump -C -s 0x3c -n 0x2 hello
+0000003c  1e 00                                             |..|
+....
+
+=== 9 program headers (segments):
+
+The program header table tells the system how to create a process image.
+Source: `/usr/include/linux/elf.h`
+Specification: http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/specialsections.html
+Specification: http://www.sco.com/developers/devspecs/gabi41.pdf (lot of information about sections, string/symbol/relocation tables, ...)
+
+....
+$ readelf -Wl hello
+
+Elf file type is EXEC (Executable file)
+Entry point 0x400440
+There are 9 program headers, starting at offset 64
+
+Program Headers:
+  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align
+  PHDR           0x000040 0x0000000000400040 0x0000000000400040 0x0001f8 0x0001f8 R E 0x8
+  INTERP         0x000238 0x0000000000400238 0x0000000000400238 0x00001c 0x00001c R   0x1
+      [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
+  LOAD           0x000000 0x0000000000400000 0x0000000000400000 0x00072c 0x00072c R E 0x200000
+  LOAD           0x000e10 0x0000000000600e10 0x0000000000600e10 0x000224 0x000228 RW  0x200000
+  DYNAMIC        0x000e28 0x0000000000600e28 0x0000000000600e28 0x0001d0 0x0001d0 RW  0x8
+  NOTE           0x000254 0x0000000000400254 0x0000000000400254 0x000044 0x000044 R   0x4
+  GNU_EH_FRAME   0x000604 0x0000000000400604 0x0000000000400604 0x000034 0x000034 R   0x4
+  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10
+  GNU_RELRO      0x000e10 0x0000000000600e10 0x0000000000600e10 0x0001f0 0x0001f0 R   0x1
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     
+   01     .interp 
+   02     .interp .note.ABI-tag .note.gnu.build-id .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt .init .plt .text .fini .rodata .eh_frame_hdr .eh_frame 
+   03     .init_array .fini_array .jcr .dynamic .got .got.plt .data .bss 
+   04     .dynamic 
+   05     .note.ABI-tag .note.gnu.build-id 
+   06     .eh_frame_hdr 
+   07     
+   08     .init_array .fini_array .jcr .dynamic .got 
+....
+
+=== 30 section headers:
+
+....
+$ readelf -WS hello
+There are 30 section headers, starting at offset 0x19c0:
+
+Section Headers:
+  [Nr] Name               Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0]                    NULL            0000000000000000 000000 000000 00      0   0  0
+  [ 1] .interp            PROGBITS        0000000000400238 000238 00001c 00   A  0   0  1
+  [ 2] .note.ABI-tag      NOTE            0000000000400254 000254 000020 00   A  0   0  4
+  [ 3] .note.gnu.build-id NOTE            0000000000400274 000274 000024 00   A  0   0  4
+  [ 4] .gnu.hash          GNU_HASH        0000000000400298 000298 00001c 00   A  5   0  8
+  [ 5] .dynsym            DYNSYM          00000000004002b8 0002b8 000060 18   A  6   1  8
+  [ 6] .dynstr            STRTAB          0000000000400318 000318 00003f 00   A  0   0  1
+  [ 7] .gnu.version       VERSYM          0000000000400358 000358 000008 02   A  5   0  2
+  [ 8] .gnu.version_r     VERNEED         0000000000400360 000360 000020 00   A  6   1  8
+  [ 9] .rela.dyn          RELA            0000000000400380 000380 000018 18   A  5   0  8
+  [10] .rela.plt          RELA            0000000000400398 000398 000048 18  AI  5  12  8
+  [11] .init              PROGBITS        00000000004003e0 0003e0 00001a 00  AX  0   0  4
+  [12] .plt               PROGBITS        0000000000400400 000400 000040 10  AX  0   0 16
+  [13] .text              PROGBITS        0000000000400440 000440 000192 00  AX  0   0 16
+  [14] .fini              PROGBITS        00000000004005d4 0005d4 000009 00  AX  0   0  4
+  [15] .rodata            PROGBITS        00000000004005e0 0005e0 000021 00   A  0   0  8
+  [16] .eh_frame_hdr      PROGBITS        0000000000400604 000604 000034 00   A  0   0  4
+  [17] .eh_frame          PROGBITS        0000000000400638 000638 0000f4 00   A  0   0  8
+  [18] .init_array        INIT_ARRAY      0000000000600e10 000e10 000008 00  WA  0   0  8
+  [19] .fini_array        FINI_ARRAY      0000000000600e18 000e18 000008 00  WA  0   0  8
+  [20] .jcr               PROGBITS        0000000000600e20 000e20 000008 00  WA  0   0  8
+  [21] .dynamic           DYNAMIC         0000000000600e28 000e28 0001d0 10  WA  6   0  8
+  [22] .got               PROGBITS        0000000000600ff8 000ff8 000008 08  WA  0   0  8
+  [23] .got.plt           PROGBITS        0000000000601000 001000 000030 08  WA  0   0  8
+  [24] .data              PROGBITS        0000000000601030 001030 000004 00  WA  0   0  1
+  [25] .bss               NOBITS          0000000000601034 001034 000004 00  WA  0   0  1
+  [26] .comment           PROGBITS        0000000000000000 001034 00002c 01  MS  0   0  1
+  [27] .shstrtab          STRTAB          0000000000000000 001060 000108 00      0   0  1
+  [28] .symtab            SYMTAB          0000000000000000 001168 000618 18     29  45  8
+  [29] .strtab            STRTAB          0000000000000000 001780 000239 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), l (large)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+....
+
+*section names*
+
+Start of section headers table and size of section header entry
+....
+$ hexdump -C -s 0x28 -n 0x8 hello
+00000028  c0 19 00 00 00 00 00 00                           |........|
+$ echo $((16#19c0))
+6592
+$ hexdump -C -s 0x3a -n 0x2 hello
+0000003a  40 00                                             |@.|
+....
+
+Index of the section header table entry that contains the section names
+....
+$ hexdump -C -s 0x3e -n 0x2 hello
+0000003e  1b 00                                             |..|
+....
+
+First section header
+....
+$ hexdump -Cv -s 0x19c0 -n 0x40 hello
+000019c0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000019d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000019e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000019f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00001a00
+....
+
+1Bth section header. 0x19c0 - start of section header table, 0x40 - size of single entry, 0x1b - entry number related to section with section names
+....
+$ hexdump -Cv -s $((16#19c0+(16#1b*16#40))) -n 0x40 hello
+00002080  11 00 00 00 03 00 00 00  00 00 00 00 00 00 00 00  |................|
+00002090  00 00 00 00 00 00 00 00  60 10 00 00 00 00 00 00  |........`.......|
+000020a0  08 01 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000020b0  01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000020c0
+....
+
+Here:
+
+* 0x00000011:         elf64.sh_name: (byte) index in `.shstrtab` section that contains this section name
+* 0x00000003:         elf64_shdr.sh_type: SHT_STRTAB
+* 0x0000000000000000: elf64_shdr.sh_flags: ?
+* 0x0000000000000000: elf64_shdr.sh_addr
+* 0x0000000000001060: elf64_shdr.sh_offset
+* 0x0000000000000108: elf64_shdr.sh_size
+* 0x00000000:         elf64_shdr.sh_link: Index of another section
+* 0x00000000:         elf64_shdr.sh_info: Additional section information
+* 0x0000000000000001: elf64_shdr.sh_addralign: Section alignment
+* 0x0000000000000000: elf64_shdr.sh_entsize: Entry size if section holds table
+
+So here's section content:
+....
+$ hexdump -Cv -s $((16#1060)) -n 0x108 hello
+00001060  00 2e 73 79 6d 74 61 62  00 2e 73 74 72 74 61 62  |..symtab..strtab|
+00001070  00 2e 73 68 73 74 72 74  61 62 00 2e 69 6e 74 65  |..shstrtab..inte|
+00001080  72 70 00 2e 6e 6f 74 65  2e 41 42 49 2d 74 61 67  |rp..note.ABI-tag|
+00001090  00 2e 6e 6f 74 65 2e 67  6e 75 2e 62 75 69 6c 64  |..note.gnu.build|
+000010a0  2d 69 64 00 2e 67 6e 75  2e 68 61 73 68 00 2e 64  |-id..gnu.hash..d|
+000010b0  79 6e 73 79 6d 00 2e 64  79 6e 73 74 72 00 2e 67  |ynsym..dynstr..g|
+000010c0  6e 75 2e 76 65 72 73 69  6f 6e 00 2e 67 6e 75 2e  |nu.version..gnu.|
+000010d0  76 65 72 73 69 6f 6e 5f  72 00 2e 72 65 6c 61 2e  |version_r..rela.|
+000010e0  64 79 6e 00 2e 72 65 6c  61 2e 70 6c 74 00 2e 69  |dyn..rela.plt..i|
+000010f0  6e 69 74 00 2e 74 65 78  74 00 2e 66 69 6e 69 00  |nit..text..fini.|
+00001100  2e 72 6f 64 61 74 61 00  2e 65 68 5f 66 72 61 6d  |.rodata..eh_fram|
+00001110  65 5f 68 64 72 00 2e 65  68 5f 66 72 61 6d 65 00  |e_hdr..eh_frame.|
+00001120  2e 69 6e 69 74 5f 61 72  72 61 79 00 2e 66 69 6e  |.init_array..fin|
+00001130  69 5f 61 72 72 61 79 00  2e 6a 63 72 00 2e 64 79  |i_array..jcr..dy|
+00001140  6e 61 6d 69 63 00 2e 67  6f 74 00 2e 67 6f 74 2e  |namic..got..got.|
+00001150  70 6c 74 00 2e 64 61 74  61 00 2e 62 73 73 00 2e  |plt..data..bss..|
+00001160  63 6f 6d 6d 65 6e 74 00                           |comment.|
+00001168
+
+$ readelf -x 27 hello
+
+Hex dump of section '.shstrtab':
+  0x00000000 002e7379 6d746162 002e7374 72746162 ..symtab..strtab
+  0x00000010 002e7368 73747274 6162002e 696e7465 ..shstrtab..inte
+  0x00000020 7270002e 6e6f7465 2e414249 2d746167 rp..note.ABI-tag
+  0x00000030 002e6e6f 74652e67 6e752e62 75696c64 ..note.gnu.build
+  0x00000040 2d696400 2e676e75 2e686173 68002e64 -id..gnu.hash..d
+  0x00000050 796e7379 6d002e64 796e7374 72002e67 ynsym..dynstr..g
+  0x00000060 6e752e76 65727369 6f6e002e 676e752e nu.version..gnu.
+  0x00000070 76657273 696f6e5f 72002e72 656c612e version_r..rela.
+  0x00000080 64796e00 2e72656c 612e706c 74002e69 dyn..rela.plt..i
+  0x00000090 6e697400 2e746578 74002e66 696e6900 nit..text..fini.
+  0x000000a0 2e726f64 61746100 2e65685f 6672616d .rodata..eh_fram
+  0x000000b0 655f6864 72002e65 685f6672 616d6500 e_hdr..eh_frame.
+  0x000000c0 2e696e69 745f6172 72617900 2e66696e .init_array..fin
+  0x000000d0 695f6172 72617900 2e6a6372 002e6479 i_array..jcr..dy
+  0x000000e0 6e616d69 63002e67 6f74002e 676f742e namic..got..got.
+  0x000000f0 706c7400 2e646174 61002e62 7373002e plt..data..bss..
+  0x00000100 636f6d6d 656e7400                   comment.
+
+$ readelf -p 27 hello
+
+String dump of section '.shstrtab':
+  [     1]  .symtab
+  [     9]  .strtab
+  [    11]  .shstrtab
+  [    1b]  .interp
+  [    23]  .note.ABI-tag
+  [    31]  .note.gnu.build-id
+  [    44]  .gnu.hash
+  [    4e]  .dynsym
+  [    56]  .dynstr
+  [    5e]  .gnu.version
+  [    6b]  .gnu.version_r
+  [    7a]  .rela.dyn
+  [    84]  .rela.plt
+  [    8e]  .init
+  [    94]  .text
+  [    9a]  .fini
+  [    a0]  .rodata
+  [    a8]  .eh_frame_hdr
+  [    b6]  .eh_frame
+  [    c0]  .init_array
+  [    cc]  .fini_array
+  [    d8]  .jcr
+  [    dd]  .dynamic
+  [    e6]  .got
+  [    eb]  .got.plt
+  [    f4]  .data
+  [    fa]  .bss
+  [    ff]  .comment
+....
+
+*libgtk example*
+....
+$ readelf -SW /lib64/libgtk-3.so.0.1800.9
+There are 28 section headers, starting at offset 0x73c040:
+
+Section Headers:
+  [Nr] Name              Type            Address          Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            0000000000000000 000000 000000 00      0   0  0
+  ...
+  [14] .gresource.gtk    PROGBITS        000000000041f020 41f020 21a820 00   A  0   0  8
+  ...
+  [27] .shstrtab         STRTAB          0000000000000000 73bf30 00010a 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), l (large)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+....
+
+== Compilation ==
+
+`gcc -\### hello.c`:
+
+* `/usr/libexec/gcc/x86_64-redhat-linux/5.3.1/cc1 -quiet hello.c -quiet -dumpbase hello.c "-mtune=generic" "-march=x86-64" -auxbase hello -o hello.s`
+* `as --64 -o hello.o hello.s`
+* `ld -eh-frame-hdr -L/lib64 -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 /usr/lib64/crt1.o /usr/lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/5.3.1/crtbegin.o hello.o -lc /usr/lib/gcc/x86_64-redhat-linux/5.3.1/crtend.o /usr/lib64/crtn.o -o hello`
+
+Linker invocation is taken from:
+
+....
+/usr/libexec/gcc/x86_64-redhat-linux/5.3.1/collect2 \
+	-plugin \
+	/usr/libexec/gcc/x86_64-redhat-linux/5.3.1/liblto_plugin.so \
+	"-plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/5.3.1/lto-wrapper" \
+	"-plugin-opt=-fresolution=/tmp/ccnnSZvD.res" \
+	"-plugin-opt=-pass-through=-lgcc" \
+	"-plugin-opt=-pass-through=-lgcc_s" \
+	"-plugin-opt=-pass-through=-lc" \
+	"-plugin-opt=-pass-through=-lgcc" \
+	"-plugin-opt=-pass-through=-lgcc_s" \
+	--build-id \
+	--no-add-needed \
+	--eh-frame-hdr \
+	"--hash-style=gnu" \
+	-m \
+	elf_x86_64 \
+	-dynamic-linker \
+	/lib64/ld-linux-x86-64.so.2 \
+	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../../../lib64/crt1.o \
+	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../../../lib64/crti.o \
+	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/crtbegin.o \
+	-L/usr/lib/gcc/x86_64-redhat-linux/5.3.1 \
+	-L/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../../../lib64 \
+	-L/lib/../lib64 \
+	-L/usr/lib/../lib64 \
+	-L/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../.. \
+	/tmp/ccoE1Bth.o \
+	-lgcc \
+	--as-needed \
+	-lgcc_s \
+	--no-as-needed \
+	-lc \
+	-lgcc \
+	--as-needed \
+	-lgcc_s \
+	--no-as-needed \
+	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/crtend.o \
+	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../../../lib64/crtn.o
+....
+
+= Autotools =
+
