@@ -384,3 +384,5 @@ Linker invocation is taken from:
 
 = Autotools =
 
+Everything starts with simple `configure.ac` in main directory and `Makefile.am` in all required directories (e.g., `src`
+and root).
