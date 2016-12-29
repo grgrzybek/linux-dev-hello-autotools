@@ -382,7 +382,10 @@ Linker invocation is taken from:
 	/usr/lib/gcc/x86_64-redhat-linux/5.3.1/../../../../lib64/crtn.o
 ....
 
-= Autotools =
+== Autotools ==
 
 Everything starts with simple `configure.ac` in main directory and `Makefile.am` in all required directories (e.g., `src`
 and root).
+
+`autoreconf` runs `autoconf`, `autoheader`, `aclocal`, `automake`, `libtoolize`, and `autopoint` (when appropriate)
+repeatedly to update the GNU Build System in the specified directories and their subdirectories.
