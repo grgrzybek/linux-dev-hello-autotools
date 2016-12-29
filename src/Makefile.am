@@ -19,6 +19,8 @@
 #   …
 # Any such directory variable can be put in front of a _primary_ (omitting the dir suffix) to tell automake where
 # to install the listed files. 
+# The current primary names are ‘PROGRAMS’, ‘LIBRARIES’, ‘LTLIBRARIES’, ‘LISP’, ‘PYTHON’, ‘JAVA’, ‘SCRIPTS’,
+# ‘DATA’, ‘HEADERS’, ‘MANS’, and ‘TEXINFOS’.
 bin_PROGRAMS = hello
 # Programs need to be built from source files, so for each program prog listed in a _PROGRAMS variable,
 # automake will look for another variable named prog_SOURCES listing its source files

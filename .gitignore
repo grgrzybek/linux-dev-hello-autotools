@@ -9,3 +9,5 @@ Makefile
 /config.log
 /config.status
 /stamp-h1
+*.o
+doc/*.html
