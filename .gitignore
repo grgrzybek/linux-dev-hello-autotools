@@ -1,5 +1,12 @@
 build/
 .settings/
 autom4te.cache/
+*/.deps/
+*/Makefile
+Makefile
 /README.html
 /.cproject
+/config.h
+/config.log
+/config.status
+/stamp-h1
