@@ -389,3 +389,23 @@ and root).
 
 `autoreconf` runs `autoconf`, `autoheader`, `aclocal`, `automake`, `libtoolize`, and `autopoint` (when appropriate)
 repeatedly to update the GNU Build System in the specified directories and their subdirectories.
+
+Running `autoreconf`:
+
+....
+✔ ~/sources/github.com/grgrzybek/linux-dev/hello-c [master L|✔] 
+11:24 $ autoreconf -v --install
+autoreconf: Entering directory `.'
+autoreconf: configure.ac: not using Gettext
+autoreconf: running: aclocal 
+autoreconf: configure.ac: tracing
+autoreconf: configure.ac: not using Libtool
+autoreconf: running: /usr/bin/autoconf
+autoreconf: running: /usr/bin/autoheader
+autoreconf: running: automake --add-missing --copy --no-force
+configure.ac:7: installing './compile'
+configure.ac:5: installing './install-sh'
+configure.ac:5: installing './missing'
+src/Makefile.am: installing './depcomp'
+autoreconf: Leaving directory `.'
+....
