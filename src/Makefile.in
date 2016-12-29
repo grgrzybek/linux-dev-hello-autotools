@@ -242,6 +242,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+# Programs need to be built from source files, so for each program prog listed in a _PROGRAMS variable,
+# automake will look for another variable named prog_SOURCES listing its source files
 hello_SOURCES = hello.c
 all: all-am
 
