@@ -1,4 +1,5 @@
 build/
 .settings/
+autom4te.cache/
 /README.html
 /.cproject
