@@ -10,7 +10,7 @@
 
 int
 main(int argc, char** argv) {
-	printf("Hello %s (%s)!\n", "World", PACKAGE_STRING);
+	printf("Hello %s (%s / %s)!\n", "World", PACKAGE_STRING, PACKAGE_BUGREPORT);
 
 	return 0;
 }
