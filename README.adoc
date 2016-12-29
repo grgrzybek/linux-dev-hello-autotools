@@ -1,0 +1,1 @@
+= Sample autotools project with git history of exploration =
